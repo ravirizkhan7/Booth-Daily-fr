@@ -143,8 +143,8 @@ export const SettingsPage: React.FC = () => {
 
         <div>
           <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">Pesan Bawah (Receipt Footer)</label>
-          <input
-            type="text"
+          <textarea
+            // type="text"
             value={formData.receipt_footer}
             onChange={e => setFormData({ ...formData, receipt_footer: e.target.value })}
             className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-[#171514] border border-stone-300 dark:border-stone-700 font-medium"

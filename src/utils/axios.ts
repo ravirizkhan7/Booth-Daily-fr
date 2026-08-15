@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const API_URL =
   import.meta.env.VITE_API_URL ||
-  'https://mat-cdna-happened-schedules.trycloudflare.com/api';
+  'http://127.0.0.1:8000/api';
 
 export const APP_URL = API_URL.replace(/\/api\/?$/, '');
 

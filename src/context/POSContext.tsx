@@ -130,6 +130,7 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 
 export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
