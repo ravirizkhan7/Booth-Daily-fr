@@ -12,7 +12,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileMenuOpen, setIsMobileMen
   const { currentUser, openLoginModal, openEditAccountModal, openLogoutModal, showToast } = usePOS();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const isGuest = !currentUser;
 
   useEffect(() => {
@@ -45,12 +45,23 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileMenuOpen, setIsMobileMen
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
             className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full border border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-[#25221F] transition-all cursor-pointer"
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
-              isGuest ? 'bg-stone-200 dark:bg-stone-800 text-stone-500' :
-              currentUser?.role === 'owner' ? 'bg-[#3B2A1F] text-[#D4A373]' :
-              'bg-[#D4A373] text-[#3B2A1F]'
-            }`}>
-              <User className="w-4 h-4" />
+            <div
+              className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-sm ${isGuest
+                ? 'bg-stone-200 dark:bg-stone-800 text-stone-500'
+                : currentUser?.role === 'owner'
+                  ? 'bg-[#3B2A1F] text-[#D4A373]'
+                  : 'bg-[#D4A373] text-[#3B2A1F]'
+                }`}
+            >
+              {currentUser?.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-4 h-4" />
+              )}
             </div>
             <div className="text-left hidden sm:block max-w-[120px]">
               <p className="text-xs font-black text-stone-900 dark:text-[#F7F5F2] truncate">
@@ -66,7 +77,6 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileMenuOpen, setIsMobileMen
           {isUserDropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#1A1816] rounded-2xl shadow-xl border border-stone-200 dark:border-stone-800/80 p-2 z-50 animate-in slide-in-from-top-2 fade-in duration-150">
               <div className="px-3 py-2 border-b border-stone-100 dark:border-stone-800/80 mb-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">STATUS SIKAP POS</p>
                 <p className="text-xs font-black text-stone-900 dark:text-stone-100 truncate mt-0.5">
                   <User className="w-4 h-4 mr-2 inline" /> {currentUser ? currentUser.name : 'Guest'}
                 </p>

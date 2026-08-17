@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product, Category, Recipe, Order, Stock, Purchase, User, OrderType, PaymentMethod, Settings, OrderItem, StockHistory } from '../types';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { Product, Category, Recipe, Order, Stock, Purchase, User, OrderType, PaymentMethod, Settings, StockHistory } from '../types';
 import { productService } from '../services/productService';
 import { recipeService } from '../services/recipeService';
 import { userService } from '../services/userService';
@@ -8,6 +8,7 @@ import { stockService } from '../services/stockService';
 import { transactionService } from '../services/transactionService';
 import api from '../utils/axios';
 import { getProductStockInfo } from '../utils/stockUtils';
+import { products } from '../data/dummy';
 
 // Default settings fallback (used only until backend responds)
 const defaultSettings: Settings = {
@@ -30,7 +31,8 @@ export interface CartItem {
 
 interface POSContextType {
   currentUser: User | null;
-  setCurrentUser: (user: User | null) => void;
+  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
+  authReady: boolean;
   products: Product[];
   categories: Category[];
   recipes: Recipe[];
@@ -50,9 +52,6 @@ interface POSContextType {
   setCustomerName: (name: string) => void;
   selectedCategory: string;
   setSelectedCategory: (catId: string) => void;
-  setSearchQuery: (query: string) => void;
-  isDarkMode: boolean;
-  toggleDarkMode: () => void;
 
   // Auth Modals & Actions
   isLoginModalOpen: boolean;
@@ -66,28 +65,28 @@ interface POSContextType {
   closeLogoutModal: () => void;
   loginUser: (identifier: string, secret: string) => Promise<{ success: boolean; message: string; user?: User }>;
   logoutUser: () => void;
-  updateCurrentUserAccount: (updatedData: Partial<User>) => Promise<{ success: boolean; message: string; user?: User }>;
+  updateCurrentUserAccount: (updatedData: Partial<User>, avatarFile?: File | null) => Promise<{ success: boolean; message: string; user?: User }>;
 
-  // Product CRUD
+  // Product
   addProduct: (productData: Omit<Product, 'id'>, imageFile?: File | null) => Promise<Product>;
   editProduct: (id: string, productData: Partial<Product>, imageFile?: File | null) => Promise<Product>;
   removeProduct: (id: string) => Promise<boolean>;
 
-  // Category CRUD
+  // Category
   addCategory: (categoryData: Omit<Category, 'id' | 'slug'>) => Promise<Category>;
   editCategory: (id: string, categoryData: Partial<Category>) => Promise<Category>;
   removeCategory: (id: string) => Promise<boolean>;
 
-  // Recipe CRUD
+  // Recipe
   saveRecipeData: (recipeData: Omit<Recipe, 'id'>, recipeId?: string, imageFile?: File | null) => Promise<Recipe>;
   removeRecipe: (id: string) => Promise<boolean>;
-  // Stock CRUD & Adjustment
+  // Stock
   addStockItem: (stockData: Omit<Stock, 'id'>) => Promise<Stock>;
   editStockItem: (id: string, stockData: Partial<Stock>) => Promise<Stock>;
   removeStockItem: (id: string) => Promise<boolean>;
   adjustStockQuantity: (stockId: string, changeAmount: number, reason: string) => Promise<Stock>;
 
-  // Purchase CRUD
+  // Purchase
   addPurchase: (purchaseData: Omit<Purchase, 'id'>) => Promise<Purchase>;
   editPurchase: (id: string, purchaseData: Partial<Purchase>) => Promise<Purchase>;
   removePurchase: (id: string) => Promise<boolean>;
@@ -99,7 +98,6 @@ interface POSContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
 
-  // Recipe Modal
   selectedRecipe: Recipe | null;
   selectedRecipeProduct: Product | null;
   openRecipeModal: (product: Product) => void;
@@ -130,7 +128,7 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 
 export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
+  const [authReady, setAuthReady] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -141,19 +139,11 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [usersList, setUsersList] = useState<User[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
-  // Workspace
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('dine_in');
   const [customerName, setCustomerName] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('cat-all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Dark mode
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('boothdaily_dark_mode') === 'true';
-  });
-
-  // Modals
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [selectedRecipeProduct, setSelectedRecipeProduct] = useState<Product | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
@@ -161,7 +151,6 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentReceiptOrder, setCurrentReceiptOrder] = useState<Order | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Auth Modals
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isEditAccountModalOpen, setIsEditAccountModalOpen] = useState<boolean>(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
@@ -173,38 +162,22 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      localStorage.setItem('boothdaily_dark_mode', String(next));
-      if (next) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      return next;
-    });
-  };
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+const refreshData = async () => {
+  // setAuthReady(false);
 
-  const refreshData = async () => {
-    // ─── PUBLIC DATA: accessible without token (Guest & Authenticated) ───
-    // Products, categories, recipes, and settings are public read-only endpoints.
-    // These must work even when no user is logged in (guest mode for Kasir & Resep).
+  try {
     const [prds, cats, rcps, stgRes] = await Promise.allSettled([
       productService.getProducts(),
       productService.getCategories(),
@@ -212,136 +185,256 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       api.get('/settings'),
     ]);
 
-    if (prds.status === 'fulfilled') setProducts(prds.value);
-    else console.warn('GET /products failed:', (prds as PromiseRejectedResult).reason?.message);
-
-    if (cats.status === 'fulfilled') setCategories(cats.value);
-    else console.warn('GET /categories failed:', (cats as PromiseRejectedResult).reason?.message);
-
-    if (rcps.status === 'fulfilled') setRecipes(rcps.value);
-    else console.warn('GET /recipes failed:', (rcps as PromiseRejectedResult).reason?.message);
-
-    if (stgRes.status === 'fulfilled') {
-      const stgData = stgRes.value.data;
-      const stg = stgData?.data || stgData;
-      if (stg && stg.store_name) setSettings(stg);
+    if (prds.status === 'fulfilled') {
+      setProducts(prds.value);
     } else {
-      console.warn('GET /settings failed:', (stgRes as PromiseRejectedResult).reason?.message);
+      console.warn('GET /products failed:', prds.reason);
     }
 
-    // ─── PROTECTED DATA: requires Bearer token ────────────────────────────
-    // Only fetched if a token exists in localStorage.
+    if (cats.status === 'fulfilled') {
+      setCategories(cats.value);
+    } else {
+      console.warn('GET /categories failed:', cats.reason);
+    }
+
+    if (rcps.status === 'fulfilled') {
+      setRecipes(rcps.value);
+    } else {
+      console.warn('GET /recipes failed:', rcps.reason);
+    }
+
+    if (stgRes.status === 'fulfilled') {
+      const responseData = stgRes.value.data;
+      const settingsData = responseData?.data ?? responseData;
+
+      if (settingsData?.store_name) {
+        setSettings(settingsData);
+      }
+    } else {
+      console.warn('GET /settings failed:', stgRes.reason);
+    }
+
     const token = localStorage.getItem('token');
-    if (!token) {
-      // No token — guest mode. Restore user session from localStorage if still valid
-      // but do not attempt protected API calls.
-      const savedUserId = localStorage.getItem('boothdaily_user_session');
-      if (!savedUserId) setCurrentUser(null);
+
+    if (!token || token === 'undefined' || token === 'null') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('boothdaily_user_session');
+      localStorage.removeItem('boothdaily_user_data');
+
+      setCurrentUser(null);
       return;
     }
 
-    const [ords, stks, purs, usrs] = await Promise.allSettled([
+    const savedUserData = localStorage.getItem('boothdaily_user_data');
+
+    if (savedUserData) {
+      try {
+        const cachedUser = JSON.parse(savedUserData) as User;
+
+        if (cachedUser?.id) {
+          setCurrentUser(cachedUser);
+        }
+      } catch {
+        localStorage.removeItem('boothdaily_user_data');
+      }
+    }
+
+    let authenticatedUser: User | null = null;
+
+    try {
+      const me = await userService.getMe();
+
+      if (!me?.id) {
+        throw new Error('Data user dari /auth/me tidak valid');
+      }
+
+      authenticatedUser = me;
+
+      setCurrentUser(me);
+      localStorage.setItem('boothdaily_user_session', me.id);
+      localStorage.setItem('boothdaily_user_data', JSON.stringify(me));
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('boothdaily_user_session');
+        localStorage.removeItem('boothdaily_user_data');
+
+        setCurrentUser(null);
+        return;
+      }
+
+      console.warn('Auth session validation failed:', error);
+    }
+
+    if (!authenticatedUser) {
+      return;
+    }
+
+    const userRole = String(
+      authenticatedUser.role ?? ''
+    ).toLowerCase();
+
+    const isOwner = userRole === 'owner';
+    const isKaryawan =
+      userRole === 'karyawan' ||
+      userRole === 'employee';
+
+    const dataRequests: PromiseSettledResult<any>[] = await Promise.allSettled([
       orderService.getOrders(),
       stockService.getStocks(),
-      stockService.getPurchases(),
-      userService.getUsers(),
+      ...(isOwner
+        ? [
+            stockService.getPurchases(),
+            userService.getUsers(),
+          ]
+        : []),
     ]);
 
-    if (ords.status === 'fulfilled') setOrders(ords.value);
-    else console.warn('GET /orders failed:', (ords as PromiseRejectedResult).reason?.message);
+    const ordersResult = dataRequests[0];
+    const stocksResult = dataRequests[1];
 
-    if (stks.status === 'fulfilled') setStocks(stks.value);
-    else console.warn('GET /stocks failed:', (stks as PromiseRejectedResult).reason?.message);
-
-    if (purs.status === 'fulfilled') setPurchases(purs.value);
-    else console.warn('GET /purchases failed:', (purs as PromiseRejectedResult).reason?.message);
-
-    if (usrs.status === 'fulfilled') {
-      const usrsData = usrs.value;
-      setUsersList(usrsData);
-      // Restore user session from the fresh user list
-      const savedUserId = localStorage.getItem('boothdaily_user_session');
-      if (savedUserId) {
-        const found = usrsData.find((u: User) => u.id === savedUserId);
-        setCurrentUser(found || null);
-        if (!found) {
-          // Session user no longer exists — clear stale session
-          localStorage.removeItem('boothdaily_user_session');
-        }
-      }
+    if (ordersResult.status === 'fulfilled') {
+      setOrders(ordersResult.value);
     } else {
-      console.warn('GET /users failed:', (usrs as PromiseRejectedResult).reason?.message);
+      console.warn('GET /orders failed:', ordersResult.reason);
     }
-  };
 
-  // Auth Operations
+    if (stocksResult.status === 'fulfilled') {
+      setStocks(stocksResult.value);
+    } else {
+      console.warn('GET /stocks failed:', stocksResult.reason);
+    }
+
+    if (isOwner) {
+      const purchasesResult = dataRequests[2];
+      const usersResult = dataRequests[3];
+
+      if (purchasesResult?.status === 'fulfilled') {
+        setPurchases(purchasesResult.value);
+      } else if (purchasesResult) {
+        console.warn(
+          'GET /purchases failed:',
+          purchasesResult.reason
+        );
+      }
+
+      if (usersResult?.status === 'fulfilled') {
+        setUsersList(usersResult.value);
+      } else if (usersResult) {
+        console.warn(
+          'GET /users failed:',
+          usersResult.reason
+        );
+      }
+    } else if (isKaryawan) {
+      setPurchases([]);
+      setUsersList([]);
+    }
+  } finally {
+    setAuthReady(true);
+  }
+};
+
+
+  // Authentication
   const loginUser = async (identifier: string, secret: string) => {
     const cleanId = identifier.trim();
-    const cleanSecret = secret.trim();
 
     if (!cleanId) {
       return { success: false, message: 'Masukkan Username atau Email' };
     }
 
+    if (!secret) {
+      return { success: false, message: 'Masukkan Password' };
+    }
+
     try {
-      // Try backend POST /auth/login first via userService
-      const authRes = await userService.login(cleanId, cleanSecret);
-      if (authRes.user) {
-        setCurrentUser(authRes.user);
-        localStorage.setItem('boothdaily_user_session', authRes.user.id);
-        setIsLoginModalOpen(false);
-        showToast(`Login berhasil sebagai ${authRes.user.name}`, 'success');
-        return { success: true, message: 'Login Berhasil', user: authRes.user };
+      const authRes = await userService.login(cleanId, secret);
+
+      if (!authRes?.user?.id) {
+        return {
+          success: false,
+          message: 'Response login tidak valid',
+        };
       }
-    } catch (apiErr) {
-      console.warn('Backend login attempt failed, using local user fallback:', apiErr);
-    }
 
-    const cleanIdLower = cleanId.toLowerCase();
-    const matchedUser = usersList.find(u => {
-      if (!u.is_active) return false;
-      const matchUsername = u.username?.toLowerCase() === cleanIdLower;
-      const matchEmail = u.email.toLowerCase() === cleanIdLower;
-      const matchName = u.name.toLowerCase().includes(cleanIdLower);
-      const matchPin = u.pin === cleanIdLower;
-      return matchUsername || matchEmail || matchName || matchPin;
-    });
+      const authToken =
+        (authRes as any).token ??
+        (authRes as any).access_token ??
+        (authRes as any).data?.token ??
+        (authRes as any).data?.access_token;
 
-    if (!matchedUser) {
-      return { success: false, message: 'Akun tidak ditemukan' };
-    }
+      if (!authToken) {
+        return {
+          success: false,
+          message: 'Token autentikasi tidak ditemukan',
+        };
+      }
 
-    const isPinMatch = matchedUser.pin === cleanSecret;
-    const isPassMatch = matchedUser.password === cleanSecret;
-    const isSecretEmpty = cleanSecret === '';
+      localStorage.setItem('token', authToken);
+      localStorage.setItem(
+        'boothdaily_user_data',
+        JSON.stringify(authRes.user)
+      );
+      localStorage.setItem(
+        'boothdaily_user_session',
+        authRes.user.id
+      );
 
-    if (isPinMatch || isPassMatch || isSecretEmpty || cleanIdLower === matchedUser.pin) {
-      setCurrentUser(matchedUser);
-      localStorage.setItem('boothdaily_user_session', matchedUser.id);
+      setCurrentUser(authRes.user);
       setIsLoginModalOpen(false);
-      showToast(`Login berhasil sebagai ${matchedUser.name}`, 'success');
-      return { success: true, message: 'Login Berhasil', user: matchedUser };
+
+      showToast(
+        `Login berhasil sebagai ${authRes.user.name}`,
+        'success'
+      );
+
+      return {
+        success: true,
+        message: 'Login Berhasil',
+        user: authRes.user,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message:
+          error?.response?.data?.message ??
+          error?.message ??
+          'Username/email atau password salah',
+      };
     }
-
-    return { success: false, message: 'Password atau PIN salah' };
   };
 
-  const logoutUser = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('boothdaily_user_session');
-    setCurrentUser(null);
-    setIsLogoutModalOpen(false);
-    showToast('Logout berhasil. Anda kembali menjadi Guest.', 'info');
+  const logoutUser = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.warn('Logout API failed:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('boothdaily_user_session');
+      localStorage.removeItem('boothdaily_user_data');
+
+      setCurrentUser(null);
+      setIsLogoutModalOpen(false);
+
+      showToast('Logout berhasil. Anda kembali menjadi Guest.', 'info');
+    }
   };
 
-  const updateCurrentUserAccount = async (updatedData: Partial<User>) => {
+  const updateCurrentUserAccount = async (
+    updatedData: Partial<User>,
+    avatarFile?: File | null
+  ) => {
     if (!currentUser) {
       return { success: false, message: 'Tidak ada user aktif' };
     }
     try {
-      const updated = await userService.updateUser(currentUser.id, updatedData);
+      const updated = await userService.updateUser(currentUser.id, updatedData, avatarFile);
       setCurrentUser(updated);
       setUsersList(prev => prev.map(u => u.id === updated.id ? updated : u));
+      localStorage.setItem('boothdaily_user_data', JSON.stringify(updated));
+      localStorage.setItem('boothdaily_user_session', updated.id);
       setIsEditAccountModalOpen(false);
       showToast('Data akun berhasil diperbarui', 'success');
       return { success: true, message: 'Profil berhasil diperbarui', user: updated };
@@ -350,7 +443,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Product CRUD
+  // Product
   const addProduct = async (productData: Omit<Product, 'id'>, imageFile?: File | null) => {
     const newPrd = await productService.createProduct(productData, imageFile);
     setProducts(prev => [newPrd, ...prev]);
@@ -375,7 +468,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return success;
   };
 
-  // Category CRUD
+  // Category
   const addCategory = async (categoryData: Omit<Category, 'id' | 'slug'>) => {
     const newCat = await productService.createCategory(categoryData);
     setCategories(prev => [...prev, newCat]);
@@ -400,20 +493,16 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return success;
   };
 
-  // Recipe CRUD
+  // Recipe
   const saveRecipeData = async (
     recipeData: Omit<Recipe, 'id'>,
     recipeId?: string,
     imageFile?: File | null
   ) => {
-    // Edit resep yang sudah ada -> PUT. Resep baru -> POST.
-    // Ini penting supaya tidak nabrak validasi unique:recipes,product_id
-    // di backend saat sebenarnya sedang mengedit resep yang sudah ada.
     let saved = recipeId
       ? await recipeService.updateRecipe(recipeId, recipeData)
       : await recipeService.createRecipe(recipeData);
 
-    // Foto dikirim terpisah sebagai multipart setelah data resep tersimpan
     if (imageFile) {
       saved = await recipeService.uploadRecipeImage(saved.id, imageFile);
     }
@@ -428,7 +517,6 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return [saved, ...prev];
     });
 
-    // Update product recipe_id link if needed
     const prd = products.find(p => p.id === saved.product_id);
     if (prd && !prd.recipe_id) {
       await productService.updateProduct(prd.id, { recipe_id: saved.id });
@@ -452,7 +540,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return success;
   };
 
-  // Stock CRUD & Adjustment
+  // Stock
   const addStockItem = async (stockData: Omit<Stock, 'id'>) => {
     const newStock = await stockService.createStock(stockData);
     setStocks(prev => [newStock, ...prev]);
@@ -489,7 +577,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return updated;
   };
 
-  // Purchase CRUD
+  // Purchase
   const addPurchase = async (purchaseData: Omit<Purchase, 'id'>) => {
     const newPur = await stockService.createPurchase(purchaseData);
     setPurchases(prev => [newPur, ...prev]);
@@ -530,7 +618,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshData();
   }, []);
 
-  // Cart operations
+  // Cart
   const addToCart = (product: Product, quantityToAdd: number = 1) => {
     if (!product.is_active) {
       showToast('Produk ini sedang tidak aktif', 'error');
@@ -595,7 +683,6 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCustomerName('');
   };
 
-  // Recipe Modal
   const openRecipeModal = (product: Product) => {
     const recipe = recipes.find(r => r.product_id === product.id);
     setSelectedRecipe(recipe || null);
@@ -607,7 +694,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedRecipeProduct(null);
   };
 
-  // PIN & Payment
+  // Payment
   const openPinModal = () => {
     if (cart.length === 0) {
       showToast('Keranjang masih kosong!', 'error');
@@ -626,9 +713,8 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: false, message: 'PIN salah. Silakan coba lagi.' };
     }
 
-    // Role/Session isolation logic
+    // Logged-in users can only authorize with their own PIN.
     if (currentUser) {
-      // If a user is already logged in, they can ONLY use their own PIN.
       if (verifiedUser.id !== currentUser.id) {
         return { success: false, message: 'PIN salah. Silakan coba lagi.' };
       }
@@ -652,11 +738,8 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         user: verifiedUser
       });
 
-      // DO NOT call setCurrentUser(verifiedUser) here to maintain session isolation.
-
       setOrders(prev => [newOrder, ...prev]);
 
-      // Refresh stocks & stock histories
       const updatedStocks = await stockService.getStocks();
       const updatedHistories = await stockService.getStockHistories();
       setStocks(updatedStocks);
@@ -698,6 +781,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       value={{
         currentUser,
         setCurrentUser,
+        authReady,
         products,
         categories,
         recipes,
@@ -715,9 +799,6 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCustomerName,
         selectedCategory,
         setSelectedCategory,
-        setSearchQuery,
-        isDarkMode,
-        toggleDarkMode,
         isLoginModalOpen,
         openLoginModal,
         closeLoginModal,

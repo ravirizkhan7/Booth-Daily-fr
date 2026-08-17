@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState} from 'react';
+import { useLocation } from 'react-router-dom';
 import { usePOS } from '../hooks/usePOS';
 import { RecipeModal } from '../components/common/RecipeModal';
 import { PINModal } from '../components/common/PINModal';
@@ -31,9 +31,8 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const { currentUser, showToast } = usePOS();
+  const { currentUser } = usePOS();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   const currentRole = currentUser ? currentUser.role : 'guest';
@@ -59,15 +58,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const filteredNavItems = navItems.filter(item => canAccessPath(item.roles));
 
-  // Protect unauthorized routes
-  useEffect(() => {
-    const currentItem = navItems.find(item => item.path === location.pathname);
-    if (currentItem && !currentItem.roles.includes(currentRole)) {
-      showToast('Akses ditolak: Anda tidak memiliki izin untuk membuka halaman tersebut.', 'error');
-      navigate('/', { replace: true });
-    }
-  }, [location.pathname, currentRole]);
-
   const handleNavClick = (item: any, e: React.MouseEvent) => {
     if (item.path === location.pathname) {
       e.preventDefault();
@@ -76,24 +66,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col h-screen h-[100dvh] bg-[#FAFAFA] dark:bg-[#121110] text-[#1F1F1F] dark:text-[#F7F5F2] font-sans selection:bg-[#C68B59] selection:text-white overflow-hidden">
-      
+
       {/* 1. Fixed Navbar */}
-      <Navbar 
-        isMobileMenuOpen={isMobileMenuOpen} 
-        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+      <Navbar
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* 2. Main Container for Sidebar and Content */}
       <div className="flex-1 flex overflow-hidden">
-        
+
         {/* Desktop Sidebar (Fixed on the left) */}
-        <Sidebar 
+        <Sidebar
           filteredNavItems={filteredNavItems}
           handleNavClick={handleNavClick}
         />
 
         {/* Mobile Sidebar/Menu */}
-        <MobileMenu 
+        <MobileMenu
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
           filteredNavItems={filteredNavItems}

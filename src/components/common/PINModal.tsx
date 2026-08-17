@@ -85,7 +85,7 @@ export const PINModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div 
+      <div
         className="relative w-full max-w-lg bg-[#F7F5F2] dark:bg-[#1A1816] rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-800 overflow-hidden flex flex-col max-h-[92vh] my-auto"
         onClick={e => e.stopPropagation()}
       >
@@ -166,25 +166,22 @@ export const PINModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedMethod('cash')}
-                className={`p-3.5 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer select-none text-left ${
-                  selectedMethod === 'cash'
-                    ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-md ring-2 ring-[#D4A373]/50'
-                    : 'bg-white dark:bg-[#23201D] text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-stone-400'
-                }`}
+                className={`p-3.5 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer select-none text-left ${selectedMethod === 'cash'
+                  ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-md ring-2 ring-[#D4A373]/50'
+                  : 'bg-white dark:bg-[#23201D] text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-stone-400'
+                  }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shrink-0 ${
-                    selectedMethod === 'cash'
-                      ? 'bg-[#D4A373]/20 text-[#D4A373]'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shrink-0 ${selectedMethod === 'cash'
+                    ? 'bg-[#D4A373]/20 text-[#D4A373]'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                    }`}>
                     <Banknote className="w-5 h-5 text-[#D4A373]" />
                   </div>
                   <div>
                     <p className="font-black text-sm leading-tight"><Banknote className="w-4 h-4 mr-2 inline" /> CASH / TUNAI</p>
-                    <p className={`text-[10px] font-semibold mt-0.5 ${
-                      selectedMethod === 'cash' ? 'text-[#D4A373]' : 'text-stone-400'
-                    }`}>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${selectedMethod === 'cash' ? 'text-[#D4A373]' : 'text-stone-400'
+                      }`}>
                       Pembayaran Tunai Kasir
                     </p>
                   </div>
@@ -200,25 +197,22 @@ export const PINModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedMethod('qris')}
-                className={`p-3.5 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer select-none text-left ${
-                  selectedMethod === 'qris'
-                    ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-md ring-2 ring-[#D4A373]/50'
-                    : 'bg-white dark:bg-[#23201D] text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-stone-400'
-                }`}
+                className={`p-3.5 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer select-none text-left ${selectedMethod === 'qris'
+                  ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-md ring-2 ring-[#D4A373]/50'
+                  : 'bg-white dark:bg-[#23201D] text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-stone-400'
+                  }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shrink-0 ${
-                    selectedMethod === 'qris'
-                      ? 'bg-[#D4A373]/20 text-[#D4A373]'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shrink-0 ${selectedMethod === 'qris'
+                    ? 'bg-[#D4A373]/20 text-[#D4A373]'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                    }`}>
                     <QrCode className="w-5 h-5 text-[#D4A373]" />
                   </div>
                   <div>
                     <p className="font-black text-sm leading-tight"><QrCode className="w-4 h-4 mr-2 inline" /> QRIS</p>
-                    <p className={`text-[10px] font-semibold mt-0.5 ${
-                      selectedMethod === 'qris' ? 'text-[#D4A373]' : 'text-stone-400'
-                    }`}>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${selectedMethod === 'qris' ? 'text-[#D4A373]' : 'text-stone-400'
+                      }`}>
                       Scan E-Wallet / Mobile Banking
                     </p>
                   </div>
@@ -291,11 +285,10 @@ export const PINModal: React.FC = () => {
                 {[0, 1, 2, 3].map(i => (
                   <div
                     key={i}
-                    className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
-                      pin.length > i
-                        ? 'bg-[#3B2A1F] dark:bg-[#D4A373] border-[#3B2A1F] dark:border-[#D4A373] scale-110 shadow-sm'
-                        : 'border-stone-300 dark:border-stone-700 bg-white dark:bg-[#25221F]'
-                    }`}
+                    className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${pin.length > i
+                      ? 'bg-[#3B2A1F] dark:bg-[#D4A373] border-[#3B2A1F] dark:border-[#D4A373] scale-110 shadow-sm'
+                      : 'border-stone-300 dark:border-stone-700 bg-white dark:bg-[#25221F]'
+                      }`}
                   />
                 ))}
               </div>
@@ -305,11 +298,6 @@ export const PINModal: React.FC = () => {
                   Kasir Aktif: <span className="font-bold text-stone-800 dark:text-stone-200">{currentUser.name}</span>
                 </p>
               )}
-
-              {/* Demo PIN hint */}
-              <p className="text-[10px] text-stone-400">
-                PIN Demo: <span className="font-bold text-[#3B2A1F] dark:text-[#D4A373]">1234</span> (Owner) • <span className="font-bold text-[#3B2A1F] dark:text-[#D4A373]">5678</span> (Karyawan Rian)
-              </p>
 
               {errorMessage && (
                 <div className="flex items-center justify-center gap-1.5 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-bold animate-shake mt-2">
@@ -369,11 +357,10 @@ export const PINModal: React.FC = () => {
             type="button"
             onClick={() => handleSubmit()}
             disabled={pin.length !== 4 || isSubmitting}
-            className={`flex-1 py-3.5 rounded-2xl font-black text-xs text-[#F7F5F2] flex items-center justify-center gap-2 shadow-lg transition-all ${
-              pin.length === 4 && !isSubmitting
-                ? 'bg-[#3B2A1F] hover:bg-[#2A1E16] active:scale-98 cursor-pointer'
-                : 'bg-stone-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed shadow-none'
-            }`}
+            className={`flex-1 py-3.5 rounded-2xl font-black text-xs text-[#F7F5F2] flex items-center justify-center gap-2 shadow-lg transition-all ${pin.length === 4 && !isSubmitting
+              ? 'bg-[#3B2A1F] hover:bg-[#2A1E16] active:scale-98 cursor-pointer'
+              : 'bg-stone-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed shadow-none'
+              }`}
           >
             <Check className="w-4 h-4 text-[#D4A373]" />
             {isSubmitting ? 'Memproses Transaksi...' : `Konfirmasi Pembayaran (${formatRupiah(totalAmount)})`}

@@ -5,23 +5,27 @@ import { ProductCard } from '../components/pos/ProductCard';
 import { CartSidebar } from '../components/pos/CartSidebar';
 import { Search, ShoppingBag, Filter, Sparkles, AlertCircle } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
+import { getProductStockInfo } from '../utils/stockUtils';
 
 export const POSPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { products, selectedCategory, cart, openPinModal } = usePOS();
+  const { products, recipes, stocks, selectedCategory, cart, openPinModal } = usePOS();
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
   // Filter products based on category and search query
   const filteredProducts = products.filter(p => {
-    // Category match
+    if (!p.is_active) return false;
     let matchesCategory = true;
+
     if (selectedCategory === 'cat-favorites') {
       matchesCategory = p.is_favorite;
+    } else if (selectedCategory === 'cat-out-of-stock') {
+      const stockInfo = getProductStockInfo(p, recipes, stocks);
+      matchesCategory = stockInfo.isOut;
     } else if (selectedCategory !== 'cat-all') {
       matchesCategory = p.category_id === selectedCategory;
     }
 
-    // Search query match
     const matchesSearch = searchQuery === '' ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase());

@@ -119,11 +119,17 @@ export const RecipesPage: React.FC = () => {
     setFormData(prev => ({ ...prev, ingredients: [...prev.ingredients, newItem] }));
   };
 
-  const handleIngredientChange = (index: number, field: keyof RecipeIngredient, value: any) => {
+  const handleIngredientChange = (
+    index: number,
+    field: keyof RecipeIngredient,
+    value: any
+  ) => {
     setFormData(prev => {
       const updated = [...prev.ingredients];
+
       if (field === 'stock_id') {
-        const foundStock = stocks.find(s => s.id === value);
+        const foundStock = stocks.find(s => String(s.id) === String(value));
+
         if (foundStock) {
           updated[index] = {
             ...updated[index],
@@ -133,9 +139,16 @@ export const RecipesPage: React.FC = () => {
           };
         }
       } else {
-        updated[index] = { ...updated[index], [field]: value };
+        updated[index] = {
+          ...updated[index],
+          [field]: value
+        };
       }
-      return { ...prev, ingredients: updated };
+
+      return {
+        ...prev,
+        ingredients: updated
+      };
     });
   };
 
@@ -411,7 +424,7 @@ export const RecipesPage: React.FC = () => {
 
               {/* Upload Foto Penyajian dengan crop & kompresi otomatis */}
               <ImageUpload
-                label="Foto Hasil Penyajian"
+                label="Foto Hasil Penyajian (Opsional)"
                 value={formData.image_url}
                 onFileChange={file => setImageFile(file)}
               />

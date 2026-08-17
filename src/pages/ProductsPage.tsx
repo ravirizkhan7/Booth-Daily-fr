@@ -21,6 +21,8 @@ export const ProductsPage: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('cat-all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [showFavorites, setShowFavorites] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -46,9 +48,26 @@ export const ProductsPage: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const filteredProducts = products.filter(p => {
-    const matchesCat = selectedCat === 'cat-all' || p.category_id === selectedCat;
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
+    const matchesCat =
+      selectedCat === 'cat-all' || p.category_id === selectedCat;
+
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase());
+
+    const matchesFavorite =
+      !showFavorites || p.is_favorite;
+
+    const matchesStatus =
+      selectedStatus === 'all' ||
+      (selectedStatus === 'active' && p.is_active) ||
+      (selectedStatus === 'inactive' && !p.is_active);
+
+    return (
+      matchesCat &&
+      matchesSearch &&
+      matchesFavorite &&
+      matchesStatus
+    );
   });
 
   const handleOpenAddModal = () => {
@@ -142,31 +161,78 @@ export const ProductsPage: React.FC = () => {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#1E1C1A] p-4 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm">
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-stone-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Cari nama produk..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-stone-50 dark:bg-[#171514] border border-stone-200 dark:border-stone-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#3B2A1F] dark:focus:ring-[#D4A373]"
-          />
+      <div className="bg-white dark:bg-[#1E1C1A] p-4 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-3">
+        {/* Search + Status */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-stone-400" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari nama produk..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-stone-50 dark:bg-[#171514] border border-stone-200 dark:border-stone-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#3B2A1F] dark:focus:ring-[#D4A373]"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={selectedStatus}
+            onChange={e => setSelectedStatus(e.target.value)}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-stone-50 dark:bg-[#171514] border border-stone-200 dark:border-stone-700 text-xs font-bold text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#3B2A1F] dark:focus:ring-[#D4A373] cursor-pointer"
+          >
+            <option value="all">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="inactive">Non-Aktif</option>
+          </select>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto scrollbar-none pb-1 sm:pb-0">
-          {categories.map(cat => (
+        {/* Category + Favorite Filter */}
+        <div className="flex items-center gap-2">
+          {/* Category Scroll */}
+          <div className="flex items-center gap-2 overflow-x-auto flex-1 scrollbar-none pb-1">
+            {/* Semua */}
             <button
-              key={cat.id}
-              onClick={() => setSelectedCat(cat.id)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${selectedCat === cat.id
-                ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
-                : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
+              onClick={() => setSelectedCat('cat-all')}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${selectedCat === 'cat-all'
+                  ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
+                  : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
                 }`}
             >
-              {cat.name}
+              Semua
             </button>
-          ))}
+
+            {/* Categories */}
+            {categories
+              .filter(cat => cat.id !== 'cat-all')
+              .map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCat(cat.id)}
+                  className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${selectedCat === cat.id
+                      ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
+                      : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
+                    }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+          </div>
+
+          {/* Favorite */}
+          <button
+            onClick={() => setShowFavorites(prev => !prev)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${showFavorites
+                ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+                : 'bg-stone-50 dark:bg-[#171514] text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+              }`}
+          >
+            <Heart
+              className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`}
+            />
+            Favorit
+          </button>
         </div>
       </div>
 

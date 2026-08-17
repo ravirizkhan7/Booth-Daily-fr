@@ -39,11 +39,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ filteredNavItems, handleNavCli
                 key={item.path}
                 to={item.path}
                 onClick={e => handleNavClick(item, e)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${isActive
                     ? 'bg-[#3B2A1F] text-[#F7F5F2] shadow-md'
                     : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
-                }`}
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-[#D4A373]' : 'text-stone-400'}`} />
                 <span>{item.label}</span>
@@ -64,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ filteredNavItems, handleNavCli
         </button>
 
         <div className="p-3 bg-stone-50 dark:bg-[#23201D] rounded-xl border border-stone-200 dark:border-stone-800 text-center space-y-1">
-          <p className="text-[10px] font-bold uppercase text-[#C68B59]">BOOTH DAILY V3.0</p>
+          <p className="text-[10px] font-bold uppercase text-[#C68B59]">BOOTH DAILY V1.0</p>
           <p className="text-[9px] text-stone-400">Tablet Friendly POS System</p>
         </div>
       </div>
