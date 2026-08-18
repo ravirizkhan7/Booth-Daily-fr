@@ -3,7 +3,7 @@ import axios from 'axios';
 export const API_URL =
   import.meta.env.VITE_API_URL ||
   // 'http://booth-daily-bk.test:8080/api';
-  'https://replica-excel-background-vote.trycloudflare.com/api';
+  'https://rest-referring-pursuit-calls.trycloudflare.com/api';
 
 export const APP_URL = API_URL.replace(/\/api\/?$/, '');
 
