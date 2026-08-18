@@ -232,21 +232,19 @@ export const EmployeesPage: React.FC = () => {
 
               <div className="flex flex-col items-end gap-1 shrink-0">
                 <span
-                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    u.role === 'owner'
-                      ? 'bg-[#3B2A1F] text-[#D4A373]'
-                      : 'bg-emerald-500/10 text-emerald-600'
-                  }`}
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${u.role === 'owner'
+                    ? 'bg-[#3B2A1F] text-[#D4A373]'
+                    : 'bg-emerald-500/10 text-emerald-600'
+                    }`}
                 >
                   {u.role === 'owner' ? 'Owner' : 'Karyawan'}
                 </span>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${
-                    u.is_active
-                      ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                      : 'bg-stone-200 text-stone-600'
-                  }`}
+                  className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${u.is_active
+                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                    : 'bg-stone-200 text-stone-600'
+                    }`}
                 >
                   {u.is_active ? 'Aktif' : 'Nonaktif'}
                 </span>

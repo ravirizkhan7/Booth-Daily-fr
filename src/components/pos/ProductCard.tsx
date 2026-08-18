@@ -8,9 +8,10 @@ import { Heart, BookOpen, Sparkles, Coffee } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
+  priority?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) => {
   const { addToCart, toggleFavorite, openRecipeModal, cart, recipes, stocks } = usePOS();
 
   const cartItem = cart.find(item => item.product.id === product.id);
@@ -39,7 +40,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             alt={product.name}
             className={`w-full h-full object-cover transition-transform duration-300 ${stockInfo.isOut ? 'grayscale-[30%]' : 'group-hover:scale-105'
               }`}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-300 dark:text-stone-700">

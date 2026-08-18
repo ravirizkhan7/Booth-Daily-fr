@@ -129,8 +129,22 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState<boolean>(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('boothdaily_cached_products');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const cached = localStorage.getItem('boothdaily_cached_categories');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -174,87 +188,55 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
-const refreshData = async () => {
-  // setAuthReady(false);
-
-  try {
-    const [prds, cats, rcps, stgRes] = await Promise.allSettled([
-      productService.getProducts(),
-      productService.getCategories(),
-      recipeService.getRecipes(),
-      api.get('/settings'),
-    ]);
-
-    if (prds.status === 'fulfilled') {
-      setProducts(prds.value);
-    } else {
-      console.warn('GET /products failed:', prds.reason);
-    }
-
-    if (cats.status === 'fulfilled') {
-      setCategories(cats.value);
-    } else {
-      console.warn('GET /categories failed:', cats.reason);
-    }
-
-    if (rcps.status === 'fulfilled') {
-      setRecipes(rcps.value);
-    } else {
-      console.warn('GET /recipes failed:', rcps.reason);
-    }
-
-    if (stgRes.status === 'fulfilled') {
-      const responseData = stgRes.value.data;
-      const settingsData = responseData?.data ?? responseData;
-
-      if (settingsData?.store_name) {
-        setSettings(settingsData);
-      }
-    } else {
-      console.warn('GET /settings failed:', stgRes.reason);
-    }
-
-    const token = localStorage.getItem('token');
-
-    if (!token || token === 'undefined' || token === 'null') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('boothdaily_user_session');
-      localStorage.removeItem('boothdaily_user_data');
-
-      setCurrentUser(null);
-      return;
-    }
-
-    const savedUserData = localStorage.getItem('boothdaily_user_data');
-
-    if (savedUserData) {
-      try {
-        const cachedUser = JSON.parse(savedUserData) as User;
-
-        if (cachedUser?.id) {
-          setCurrentUser(cachedUser);
-        }
-      } catch {
-        localStorage.removeItem('boothdaily_user_data');
-      }
-    }
-
-    let authenticatedUser: User | null = null;
+  const refreshData = async () => {
+    // setAuthReady(false);
 
     try {
-      const me = await userService.getMe();
+      const [prds, cats, rcps, stgRes] = await Promise.allSettled([
+        productService.getProducts(),
+        productService.getCategories(),
+        recipeService.getRecipes(),
+        api.get('/settings'),
+      ]);
 
-      if (!me?.id) {
-        throw new Error('Data user dari /auth/me tidak valid');
+      if (prds.status === 'fulfilled') {
+        setProducts(prds.value);
+        try {
+          localStorage.setItem('boothdaily_cached_products', JSON.stringify(prds.value));
+        } catch {}
+      } else {
+        console.warn('GET /products failed:', prds.reason);
       }
 
-      authenticatedUser = me;
+      if (cats.status === 'fulfilled') {
+        setCategories(cats.value);
+        try {
+          localStorage.setItem('boothdaily_cached_categories', JSON.stringify(cats.value));
+        } catch {}
+      } else {
+        console.warn('GET /categories failed:', cats.reason);
+      }
 
-      setCurrentUser(me);
-      localStorage.setItem('boothdaily_user_session', me.id);
-      localStorage.setItem('boothdaily_user_data', JSON.stringify(me));
-    } catch (error: any) {
-      if (error?.response?.status === 401) {
+      if (rcps.status === 'fulfilled') {
+        setRecipes(rcps.value);
+      } else {
+        console.warn('GET /recipes failed:', rcps.reason);
+      }
+
+      if (stgRes.status === 'fulfilled') {
+        const responseData = stgRes.value.data;
+        const settingsData = responseData?.data ?? responseData;
+
+        if (settingsData?.store_name) {
+          setSettings(settingsData);
+        }
+      } else {
+        console.warn('GET /settings failed:', stgRes.reason);
+      }
+
+      const token = localStorage.getItem('token');
+
+      if (!token || token === 'undefined' || token === 'null') {
         localStorage.removeItem('token');
         localStorage.removeItem('boothdaily_user_session');
         localStorage.removeItem('boothdaily_user_data');
@@ -263,77 +245,115 @@ const refreshData = async () => {
         return;
       }
 
-      console.warn('Auth session validation failed:', error);
-    }
+      const savedUserData = localStorage.getItem('boothdaily_user_data');
 
-    if (!authenticatedUser) {
-      return;
-    }
+      if (savedUserData) {
+        try {
+          const cachedUser = JSON.parse(savedUserData) as User;
 
-    const userRole = String(
-      authenticatedUser.role ?? ''
-    ).toLowerCase();
+          if (cachedUser?.id) {
+            setCurrentUser(cachedUser);
+          }
+        } catch {
+          localStorage.removeItem('boothdaily_user_data');
+        }
+      }
 
-    const isOwner = userRole === 'owner';
-    const isKaryawan =
-      userRole === 'karyawan' ||
-      userRole === 'employee';
+      let authenticatedUser: User | null = null;
 
-    const dataRequests: PromiseSettledResult<any>[] = await Promise.allSettled([
-      orderService.getOrders(),
-      stockService.getStocks(),
-      ...(isOwner
-        ? [
+      try {
+        const me = await userService.getMe();
+
+        if (!me?.id) {
+          throw new Error('Data user dari /auth/me tidak valid');
+        }
+
+        authenticatedUser = me;
+
+        setCurrentUser(me);
+        localStorage.setItem('boothdaily_user_session', me.id);
+        localStorage.setItem('boothdaily_user_data', JSON.stringify(me));
+      } catch (error: any) {
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('boothdaily_user_session');
+          localStorage.removeItem('boothdaily_user_data');
+
+          setCurrentUser(null);
+          return;
+        }
+
+        console.warn('Auth session validation failed:', error);
+      }
+
+      if (!authenticatedUser) {
+        return;
+      }
+
+      const userRole = String(
+        authenticatedUser.role ?? ''
+      ).toLowerCase();
+
+      const isOwner = userRole === 'owner';
+      const isKaryawan =
+        userRole === 'karyawan' ||
+        userRole === 'employee';
+
+      const dataRequests: PromiseSettledResult<any>[] = await Promise.allSettled([
+        orderService.getOrders(),
+        stockService.getStocks(),
+        ...(isOwner
+          ? [
             stockService.getPurchases(),
             userService.getUsers(),
           ]
-        : []),
-    ]);
+          : []),
+      ]);
 
-    const ordersResult = dataRequests[0];
-    const stocksResult = dataRequests[1];
+      const ordersResult = dataRequests[0];
+      const stocksResult = dataRequests[1];
 
-    if (ordersResult.status === 'fulfilled') {
-      setOrders(ordersResult.value);
-    } else {
-      console.warn('GET /orders failed:', ordersResult.reason);
-    }
-
-    if (stocksResult.status === 'fulfilled') {
-      setStocks(stocksResult.value);
-    } else {
-      console.warn('GET /stocks failed:', stocksResult.reason);
-    }
-
-    if (isOwner) {
-      const purchasesResult = dataRequests[2];
-      const usersResult = dataRequests[3];
-
-      if (purchasesResult?.status === 'fulfilled') {
-        setPurchases(purchasesResult.value);
-      } else if (purchasesResult) {
-        console.warn(
-          'GET /purchases failed:',
-          purchasesResult.reason
-        );
+      if (ordersResult.status === 'fulfilled') {
+        setOrders(ordersResult.value);
+      } else {
+        console.warn('GET /orders failed:', ordersResult.reason);
       }
 
-      if (usersResult?.status === 'fulfilled') {
-        setUsersList(usersResult.value);
-      } else if (usersResult) {
-        console.warn(
-          'GET /users failed:',
-          usersResult.reason
-        );
+      if (stocksResult.status === 'fulfilled') {
+        setStocks(stocksResult.value);
+      } else {
+        console.warn('GET /stocks failed:', stocksResult.reason);
       }
-    } else if (isKaryawan) {
-      setPurchases([]);
-      setUsersList([]);
+
+      if (isOwner) {
+        const purchasesResult = dataRequests[2];
+        const usersResult = dataRequests[3];
+
+        if (purchasesResult?.status === 'fulfilled') {
+          setPurchases(purchasesResult.value);
+        } else if (purchasesResult) {
+          console.warn(
+            'GET /purchases failed:',
+            purchasesResult.reason
+          );
+        }
+
+        if (usersResult?.status === 'fulfilled') {
+          setUsersList(usersResult.value);
+        } else if (usersResult) {
+          console.warn(
+            'GET /users failed:',
+            usersResult.reason
+          );
+        }
+      } else if (isKaryawan) {
+        setPurchases([]);
+        setUsersList([]);
+      }
+    } finally {
+      setAuthReady(true);
     }
-  } finally {
-    setAuthReady(true);
-  }
-};
+  };
 
 
   // Authentication

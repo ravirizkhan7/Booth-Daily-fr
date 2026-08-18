@@ -196,8 +196,8 @@ export const ProductsPage: React.FC = () => {
             <button
               onClick={() => setSelectedCat('cat-all')}
               className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${selectedCat === 'cat-all'
-                  ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
-                  : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
+                ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
+                : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
                 }`}
             >
               Semua
@@ -211,8 +211,8 @@ export const ProductsPage: React.FC = () => {
                   key={cat.id}
                   onClick={() => setSelectedCat(cat.id)}
                   className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${selectedCat === cat.id
-                      ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
-                      : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
+                    ? 'bg-[#3B2A1F] text-[#F7F5F2] border-[#3B2A1F] shadow-sm'
+                    : 'bg-stone-50 dark:bg-[#171514] text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-stone-300'
                     }`}
                 >
                   {cat.name}
@@ -224,8 +224,8 @@ export const ProductsPage: React.FC = () => {
           <button
             onClick={() => setShowFavorites(prev => !prev)}
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${showFavorites
-                ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
-                : 'bg-stone-50 dark:bg-[#171514] text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+              ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+              : 'bg-stone-50 dark:bg-[#171514] text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
               }`}
           >
             <Heart
