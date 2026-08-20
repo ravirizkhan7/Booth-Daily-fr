@@ -151,8 +151,7 @@ export const products: Product[] = [
     image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80',
     description: 'Signature coffee Booth Daily dengan espresso mantap, fresh milk, dan gula aren organik murni.',
     is_active: true,
-    is_favorite: true,
-    recipe_id: 'rcp-1'
+    is_favorite: true
   },
   {
     id: 'prd-2',
@@ -163,8 +162,7 @@ export const products: Product[] = [
     image_url: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&auto=format&fit=crop&q=80',
     description: 'Espresso klasik dikombinasikan dengan steamed fresh milk bertekstur microfoam lembut.',
     is_active: true,
-    is_favorite: true,
-    recipe_id: 'rcp-2'
+    is_favorite: true
   },
   {
     id: 'prd-3',
@@ -175,8 +173,7 @@ export const products: Product[] = [
     image_url: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&auto=format&fit=crop&q=80',
     description: 'Authentic Uji Matcha dipadukan dengan fresh milk creamy yang menyegarkan.',
     is_active: true,
-    is_favorite: true,
-    recipe_id: 'rcp-3'
+    is_favorite: true
   },
   {
     id: 'prd-4',
@@ -187,8 +184,7 @@ export const products: Product[] = [
     image_url: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&auto=format&fit=crop&q=80',
     description: 'Double shot espresso segar dituangkan ke dalam air mineral dingin dan es batu.',
     is_active: true,
-    is_favorite: false,
-    recipe_id: 'rcp-4'
+    is_favorite: false
   },
   {
     id: 'prd-5',

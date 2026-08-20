@@ -117,7 +117,7 @@ interface POSContextType {
 
   // Favorites & Data Reload
   toggleFavorite: (productId: string) => Promise<void>;
-  refreshData: () => Promise<void>;
+  refreshData: () => Promise<boolean>;
 
   // Toast
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
@@ -188,8 +188,9 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
-  const refreshData = async () => {
-    // setAuthReady(false);
+  const refreshData = async (): Promise<boolean> => {
+    let hasFailures = false;
+    let hasSuccesses = false;
 
     try {
       const [prds, cats, rcps, stgRes] = await Promise.allSettled([
@@ -201,25 +202,31 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (prds.status === 'fulfilled') {
         setProducts(prds.value);
+        hasSuccesses = true;
         try {
           localStorage.setItem('boothdaily_cached_products', JSON.stringify(prds.value));
         } catch {}
       } else {
+        hasFailures = true;
         console.warn('GET /products failed:', prds.reason);
       }
 
       if (cats.status === 'fulfilled') {
         setCategories(cats.value);
+        hasSuccesses = true;
         try {
           localStorage.setItem('boothdaily_cached_categories', JSON.stringify(cats.value));
         } catch {}
       } else {
+        hasFailures = true;
         console.warn('GET /categories failed:', cats.reason);
       }
 
       if (rcps.status === 'fulfilled') {
         setRecipes(rcps.value);
+        hasSuccesses = true;
       } else {
+        hasFailures = true;
         console.warn('GET /recipes failed:', rcps.reason);
       }
 
@@ -230,7 +237,9 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (settingsData?.store_name) {
           setSettings(settingsData);
         }
+        hasSuccesses = true;
       } else {
+        hasFailures = true;
         console.warn('GET /settings failed:', stgRes.reason);
       }
 
@@ -242,7 +251,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.removeItem('boothdaily_user_data');
 
         setCurrentUser(null);
-        return;
+        return hasSuccesses && !hasFailures;
       }
 
       const savedUserData = localStorage.getItem('boothdaily_user_data');
@@ -273,6 +282,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentUser(me);
         localStorage.setItem('boothdaily_user_session', me.id);
         localStorage.setItem('boothdaily_user_data', JSON.stringify(me));
+        hasSuccesses = true;
       } catch (error: any) {
         if (error?.response?.status === 401) {
           localStorage.removeItem('token');
@@ -280,14 +290,19 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           localStorage.removeItem('boothdaily_user_data');
 
           setCurrentUser(null);
-          return;
+          return false;
         }
 
         console.warn('Auth session validation failed:', error);
+        if (currentUser) {
+          authenticatedUser = currentUser;
+        } else {
+          hasFailures = true;
+        }
       }
 
       if (!authenticatedUser) {
-        return;
+        return hasSuccesses && !hasFailures;
       }
 
       const userRole = String(
@@ -302,6 +317,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const dataRequests: PromiseSettledResult<any>[] = await Promise.allSettled([
         orderService.getOrders(),
         stockService.getStocks(),
+        stockService.getStockHistories(),
         ...(isOwner
           ? [
             stockService.getPurchases(),
@@ -312,26 +328,41 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       const ordersResult = dataRequests[0];
       const stocksResult = dataRequests[1];
+      const stockHistoriesResult = dataRequests[2];
 
       if (ordersResult.status === 'fulfilled') {
         setOrders(ordersResult.value);
+        hasSuccesses = true;
       } else {
+        hasFailures = true;
         console.warn('GET /orders failed:', ordersResult.reason);
       }
 
       if (stocksResult.status === 'fulfilled') {
         setStocks(stocksResult.value);
+        hasSuccesses = true;
       } else {
+        hasFailures = true;
         console.warn('GET /stocks failed:', stocksResult.reason);
       }
 
+      if (stockHistoriesResult.status === 'fulfilled') {
+        setStockHistories(stockHistoriesResult.value);
+        hasSuccesses = true;
+      } else {
+        hasFailures = true;
+        console.warn('GET /stocks/histories failed:', stockHistoriesResult.reason);
+      }
+
       if (isOwner) {
-        const purchasesResult = dataRequests[2];
-        const usersResult = dataRequests[3];
+        const purchasesResult = dataRequests[3];
+        const usersResult = dataRequests[4];
 
         if (purchasesResult?.status === 'fulfilled') {
           setPurchases(purchasesResult.value);
+          hasSuccesses = true;
         } else if (purchasesResult) {
+          hasFailures = true;
           console.warn(
             'GET /purchases failed:',
             purchasesResult.reason
@@ -340,7 +371,9 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (usersResult?.status === 'fulfilled') {
           setUsersList(usersResult.value);
+          hasSuccesses = true;
         } else if (usersResult) {
+          hasFailures = true;
           console.warn(
             'GET /users failed:',
             usersResult.reason
@@ -350,6 +383,11 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setPurchases([]);
         setUsersList([]);
       }
+
+      return hasSuccesses && !hasFailures;
+    } catch (error) {
+      console.error('refreshData unexpected error:', error);
+      return false;
     } finally {
       setAuthReady(true);
     }
@@ -402,6 +440,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       );
 
       setCurrentUser(authRes.user);
+      await refreshData();
       setIsLoginModalOpen(false);
 
       showToast(
@@ -436,6 +475,9 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('boothdaily_user_data');
 
       setCurrentUser(null);
+      setPurchases([]);
+      setUsersList([]);
+      setStockHistories([]);
       setIsLogoutModalOpen(false);
 
       showToast('Logout berhasil. Anda kembali menjadi Guest.', 'info');
@@ -537,24 +579,14 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return [saved, ...prev];
     });
 
-    const prd = products.find(p => p.id === saved.product_id);
-    if (prd && !prd.recipe_id) {
-      await productService.updateProduct(prd.id, { recipe_id: saved.id });
-      setProducts(prev => prev.map(p => p.id === prd.id ? { ...p, recipe_id: saved.id } : p));
-    }
-
     showToast('Resep berhasil disimpan', 'success');
     return saved;
   };
 
   const removeRecipe = async (id: string) => {
-    const rcp = recipes.find(r => r.id === id);
     const success = await recipeService.deleteRecipe(id);
     if (success) {
       setRecipes(prev => prev.filter(r => r.id !== id));
-      if (rcp) {
-        setProducts(prev => prev.map(p => p.id === rcp.product_id ? { ...p, recipe_id: undefined } : p));
-      }
       showToast('Resep berhasil dihapus', 'success');
     }
     return success;

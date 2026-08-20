@@ -14,7 +14,9 @@ export function getProductStockInfo(
   stocks: Stock[]
 ): ProductStockInfo {
   // Find recipe for product
-  const recipe = recipes.find(r => r.product_id === product.id);
+  const recipe = recipes.find(
+    r => r.product_id != null && product.id != null && String(r.product_id) === String(product.id)
+  );
 
   // If no recipe defined or recipe ingredients list is empty, default to available
   if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) {
@@ -31,7 +33,14 @@ export function getProductStockInfo(
   let hasLowStockIngredient = false;
 
   for (const ing of recipe.ingredients) {
-    const stockItem = stocks.find(s => s.id === ing.stock_id);
+    if (!ing.stock_id) {
+      minPortions = 0;
+      break;
+    }
+
+    const stockItem = stocks.find(
+      s => s.id != null && String(s.id) === String(ing.stock_id)
+    );
     if (!stockItem || stockItem.current_amount <= 0) {
       minPortions = 0;
       break;

@@ -54,7 +54,6 @@ export interface Product {
   description: string;
   is_active: boolean;
   is_favorite: boolean;
-  recipe_id?: string;
 }
 
 export interface Stock {

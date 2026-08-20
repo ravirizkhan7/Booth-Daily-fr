@@ -9,6 +9,7 @@ export const SettingsPage: React.FC = () => {
 
   const [formData, setFormData] = useState({ ...settings });
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync formData when settings change from backend
   React.useEffect(() => {
@@ -41,11 +42,25 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetData = async () => {
-    if (window.confirm('Reset dan muat ulang data dari server?')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('boothdaily_user_session');
-      await refreshData();
-      showToast('Data berhasil dimuat ulang dari server', 'info');
+    if (isRefreshing) return;
+
+    if (!window.confirm('Muat ulang seluruh data dari server?')) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const isSuccess = await refreshData();
+      if (isSuccess) {
+        showToast('Data berhasil dimuat ulang dari server', 'success');
+      } else {
+        showToast('Beberapa data gagal dimuat ulang dari server', 'info');
+      }
+    } catch (err: any) {
+      console.error('Failed to reload data:', err);
+      showToast('Gagal memuat ulang data dari server', 'error');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -155,9 +170,11 @@ export const SettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleResetData}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 font-bold text-xs"
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 font-bold text-xs transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
-            <RefreshCw className="w-4 h-4" /> Muat Ulang Data
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Memuat Data...' : 'Muat Ulang Data'}
           </button>
 
           <button

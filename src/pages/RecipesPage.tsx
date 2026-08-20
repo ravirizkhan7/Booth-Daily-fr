@@ -46,6 +46,14 @@ export const RecipesPage: React.FC = () => {
   // null = tidak ada perubahan foto (pakai foto lama / tidak ada foto).
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  const productIdsWithRecipe = new Set(recipes.map(r => r.product_id));
+
+  const availableProducts = editingRecipe
+    ? products
+    : products.filter(p => !productIdsWithRecipe.has(p.id));
+
+  const hasAvailableProducts = products.some(p => !productIdsWithRecipe.has(p.id));
+
   const filteredRecipes = recipes.filter(r => {
     const product = products.find(p => p.id === r.product_id);
     if (!product) return false;
@@ -55,9 +63,9 @@ export const RecipesPage: React.FC = () => {
   const handleOpenAdd = () => {
     setEditingRecipe(null);
     setFormError('');
-    // Pick first product that doesn't have a recipe yet, or default to first product
-    const unusedProduct = products.find(p => !recipes.some(r => r.product_id === p.id));
-    const defaultProductId = unusedProduct ? unusedProduct.id : (products[0]?.id || '');
+    // Pick first product that doesn't have a recipe yet
+    const unusedProduct = products.find(p => !productIdsWithRecipe.has(p.id));
+    const defaultProductId = unusedProduct ? unusedProduct.id : '';
 
     setFormData({
       product_id: defaultProductId,
@@ -234,7 +242,9 @@ export const RecipesPage: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#3B2A1F] hover:bg-[#2A1E16] text-[#F7F5F2] text-sm font-bold shadow-md transition-all cursor-pointer"
+            disabled={!hasAvailableProducts}
+            title={!hasAvailableProducts ? 'Semua produk sudah memiliki resep' : undefined}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#3B2A1F] hover:bg-[#2A1E16] text-[#F7F5F2] text-sm font-bold shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4 text-[#D4A373]" />
             Tambah Resep Baru
@@ -393,18 +403,26 @@ export const RecipesPage: React.FC = () => {
                   <select
                     value={formData.product_id}
                     onChange={e => setFormData({ ...formData, product_id: e.target.value })}
-                    disabled={!!editingRecipe}
+                    disabled={!!editingRecipe || availableProducts.length === 0}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-[#171514] border border-stone-300 dark:border-stone-700 font-semibold focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    {availableProducts.length === 0 ? (
+                      <option value="" disabled>Semua produk sudah memiliki resep</option>
+                    ) : (
+                      availableProducts.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))
+                    )}
                   </select>
-                  {editingRecipe && (
+                  {editingRecipe ? (
                     <p className="text-[10px] text-stone-400 font-medium mt-1">
                       Produk tidak bisa diubah saat mengedit resep.
                     </p>
-                  )}
+                  ) : availableProducts.length === 0 ? (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                      Semua produk sudah memiliki resep.
+                    </p>
+                  ) : null}
                 </div>
 
                 <div>
@@ -584,7 +602,8 @@ export const RecipesPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#3B2A1F] hover:bg-[#2A1E16] text-[#F7F5F2] font-extrabold shadow-md transition-all cursor-pointer"
+                  disabled={!editingRecipe && availableProducts.length === 0}
+                  className="px-5 py-2.5 rounded-xl bg-[#3B2A1F] hover:bg-[#2A1E16] text-[#F7F5F2] font-extrabold shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Simpan Resep
                 </button>

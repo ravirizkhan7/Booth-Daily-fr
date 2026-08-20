@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { usePOS } from '../hooks/usePOS';
 import { Purchase, PurchaseItem } from '../types';
 import { formatRupiah, formatDate } from '../utils/formatters';
-import { 
-  ShoppingBag, Plus, Search, Edit2, Trash2, Eye, X, Calendar, 
-  Truck, CheckCircle2, FileText, AlertTriangle 
+import {
+  ShoppingBag, Plus, Search, Edit2, Trash2, Eye, X, Calendar,
+  Truck, CheckCircle2, FileText, AlertTriangle
 } from 'lucide-react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
@@ -35,6 +35,24 @@ export const PurchasesPage: React.FC = () => {
 
   const [formError, setFormError] = useState('');
 
+  // Normalisasi tanggal apapun formatnya (ISO string dengan waktu, Date object,
+  // string dari database, dll) jadi "YYYY-MM-DD" biar cocok sama <input type="date">.
+  // Tanpa ini, kalau format tanggal dari backend bukan persis YYYY-MM-DD,
+  // input date akan menolaknya dan tampil kosong.
+  const toDateInputValue = (value: any): string => {
+    if (!value) return new Date().toISOString().slice(0, 10);
+    if (typeof value === 'string') {
+      // Sudah dalam format YYYY-MM-DD, langsung pakai
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+      return new Date().toISOString().slice(0, 10);
+    }
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
+  };
+
   const filteredPurchases = purchases.filter(p =>
     p.purchase_number.toLowerCase().includes(search.toLowerCase()) ||
     p.supplier.toLowerCase().includes(search.toLowerCase())
@@ -58,7 +76,7 @@ export const PurchasesPage: React.FC = () => {
           total_cost: 1000 * defaultStock.cost_per_unit
         }
       ] : [],
-      notes: 'Restok berkala bahan baku booth'
+      notes: '' // notes dikosongkan, user isi manual
     });
     setIsModalOpen(true);
   };
@@ -69,7 +87,7 @@ export const PurchasesPage: React.FC = () => {
     setFormData({
       purchase_number: purchase.purchase_number,
       supplier: purchase.supplier,
-      date: purchase.date,
+      date: toDateInputValue(purchase.date),
       items: purchase.items.map(i => ({
         stock_id: i.stock_id,
         stock_name: i.stock_name,
@@ -115,7 +133,7 @@ export const PurchasesPage: React.FC = () => {
       const target = { ...updated[index] };
 
       if (field === 'stock_id') {
-        const found = stocks.find(s => s.id === value);
+        const found = stocks.find(s => s.id != null && value != null && String(s.id) === String(value));
         if (found) {
           target.stock_id = found.id;
           target.stock_name = found.name;
@@ -462,6 +480,20 @@ export const PurchasesPage: React.FC = () => {
                 )}
               </div>
 
+              {/* Catatan / Notes - Manual Input */}
+              <div>
+                <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">
+                  Catatan (Opsional)
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Contoh: Restok berkala bahan baku booth, beli tambahan cup ukuran M, dll..."
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-[#171514] border border-stone-300 dark:border-stone-700 font-semibold focus:outline-none resize-none"
+                />
+              </div>
+
               {/* Summary */}
               <div className="p-3.5 bg-[#3B2A1F]/10 dark:bg-[#D4A373]/10 rounded-2xl border border-[#3B2A1F]/20 flex justify-between items-center font-black text-sm text-[#3B2A1F] dark:text-[#D4A373]">
                 <span>TOTAL BELANJA PEMBELIAN:</span>
@@ -517,6 +549,13 @@ export const PurchasesPage: React.FC = () => {
                 <p className="text-stone-500 font-bold">Supplier / Vendor:</p>
                 <p className="font-extrabold text-sm text-stone-900 dark:text-stone-100">{viewingPurchase.supplier}</p>
               </div>
+
+              {viewingPurchase.notes && (
+                <div className="p-3 bg-stone-50 dark:bg-[#171514] rounded-2xl border border-stone-200 dark:border-stone-800 space-y-1">
+                  <p className="text-stone-500 font-bold">Catatan:</p>
+                  <p className="font-semibold text-stone-800 dark:text-stone-200">{viewingPurchase.notes}</p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <p className="font-extrabold text-stone-500 uppercase text-[10px]">Barang Yang Dibeli:</p>

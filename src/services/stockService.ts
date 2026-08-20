@@ -9,11 +9,12 @@ export const stockService = {
   },
 
   async getStockHistories(): Promise<StockHistory[]> {
-    // Backend does not have a global GET /stock-histories endpoint.
-    // Stock histories are available per-stock via GET /stocks/{id}/histories.
-    // Return empty array — this is NOT a fallback to dummy data.
-    console.warn('GET /stock-histories: no global endpoint available in backend. Use getStockHistoriesForStock(stockId) instead.');
-    return [];
+    const response = await api.get('/stocks/histories');
+    const data = response.data;
+    if (data.data && Array.isArray(data.data.data)) {
+      return data.data.data;
+    }
+    return Array.isArray(data) ? data : (data.data || []);
   },
 
   async getStockHistoriesForStock(stockId: string): Promise<StockHistory[]> {
